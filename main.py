@@ -1,6 +1,6 @@
 def log2(x: float, epsilon: float = 1e-12) -> float:
     if x <= 0:
-        raise ValueError("log2: x musi być > 0")
+        raise ValueError("\033[31mlog2: x musi być > 0\033[0m")
     if x == 1:
         return 0.0
     y_min, y_max = -25.0, 25.0
@@ -64,19 +64,19 @@ def calculate_probabilities(features: dict = None) -> dict[str, dict[str, float]
 
 def calculate_entropy(probabilities: dict = None) -> dict:
     entropies = {}
-    for column_name, value_count_dict in probabilities.items():
-        column_entropy = {}
-        for value, value_count in value_count_dict.items():
-            column_entropy[value] = log2(value_count) * -1
-        entropies[column_name] = column_entropy
+    for column_name, prob_dict in probabilities.items():
+        total_entropy = 0.0
+        for value, p in prob_dict.items():
+            if p > 0:
+                total_entropy -= p * log2(p)
+        entropies[column_name] = total_entropy
     return entropies
 
 def show_results(entropies: dict) -> None:
-    for column_name, column_entropy in entropies.items():
-        print(f"\033[36m---------------- \033[35m{column_name} \033[36m----------------")
-        for value, entropy_value in column_entropy.items():
-            print(f"\033[36mWartość \033[35m'{value}'\033[36m: entropia = \033[32m{entropy_value}")
-        print()
+    for column_name, entropy_value in entropies.items():
+        print(f"\033[36m------- \033[35m{column_name} \033[36m-------")
+        print(f"\033[36mEntropia = \033[32m{entropy_value}\n")
+
 
 def main():
     raw_data = read_data(r'sample_data/classification.csv')
