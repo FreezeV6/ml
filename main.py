@@ -14,7 +14,6 @@ def log2(x: float, epsilon: float = 1e-12) -> float:
             if abs(y_mid - nearest_int) < 1e-12:
                 return float(nearest_int)
             return y_mid
-
         if diff < 0:
             y_min = y_mid
         else:
@@ -44,7 +43,6 @@ def to_array(raw_data: str = None, delimiter: str = None, data_type: str = None)
             print('\033[33mNieznany format pliku!\033[0m')
             return {}
 
-
 def extract_features(data: dict = None) -> dict:
     value_count = {}
     for column_name, value_tuple in data.items():
@@ -64,9 +62,9 @@ def calculate_probabilities(features: dict = None) -> dict[str, dict[str, float]
         probabilities[column_name] = column_probs
     return probabilities
 
-def calculate_entropy(propabilities: dict = None) -> dict:
+def calculate_entropy(probabilities: dict = None) -> dict:
     entropies = {}
-    for column_name, value_count_dict in propabilities.items():
+    for column_name, value_count_dict in probabilities.items():
         column_entropy = {}
         for value, value_count in value_count_dict.items():
             column_entropy[value] = log2(value_count) * -1
@@ -80,14 +78,12 @@ def show_results(entropies: dict) -> None:
             print(f"\033[36mWartość \033[35m'{value}'\033[36m: entropia = \033[32m{entropy_value}")
         print()
 
-
-
 def main():
     raw_data = read_data(r'sample_data/classification.csv')
     arrayed = to_array(raw_data=raw_data, data_type='csv', delimiter=',')
     features = extract_features(data=arrayed)
-    propabilities = calculate_probabilities(features=features)
-    entropies = calculate_entropy(propabilities=propabilities)
+    probabilities = calculate_probabilities(features=features)
+    entropies = calculate_entropy(probabilities=probabilities)
     show_results(entropies=entropies)
 
 if __name__ == '__main__':
