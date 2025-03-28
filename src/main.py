@@ -1,5 +1,8 @@
 from math import log2
 
+import os
+
+
 def delimiter_sniffer(raw_data: str = None) -> str:
     allowed_delimiters = ['\t', ';', ',', ' ']
     lines = raw_data.splitlines()[:5]
@@ -24,6 +27,7 @@ def read_data(path: str = None, cont_labels: bool = False) -> (str, str, list):
     try:
         with open(path, mode='r') as file:
             raw_data = file.read().strip('ď»ż').strip('\ufeff')
+            raw_data = raw_data.strip('"')
             first_line = raw_data.splitlines()[0]
             delimiter = delimiter_sniffer(raw_data)
             labels = first_line.split(delimiter) if cont_labels else \
@@ -86,6 +90,7 @@ def calculate_information_gain(entropies: dict, decision_attribute: str = 'd') -
     return information_gains
 
 def show_results(entropies: dict = None, info_gain: dict = None) -> None:
+    # os.system('cls')
     for column_name, entropy_value in entropies.items():
         print(f"\033[36m------- \033[35m{column_name} \033[36m-------")
         print(f"\033[36mEntropia = \033[32m{entropy_value}\n")
@@ -109,18 +114,22 @@ def get_data_info_inputs() -> (str, str):
     return path, cont_labels
 
 def get_decision_column(labels: list = None) -> str:
-    decision_attribute = input("Podaj nazwę kolumny decyzyjnej lub jej indeks (np. 'salary' lub '4'): \n")
+    decision_attribute = input("Podaj nazwę kolumny decyzyjnej lub jej indeks (np. 'salary' lub '4'), \n"
+                               "Aby wyświetlić załadowane potencjalne nagłówki wpisz 'show'\n")
+    if decision_attribute.lower() == 'show':
+        for i, el in enumerate(labels):
+            print(f"{i + 1}: {el}")
+        decision_attribute = input("Podaj nazwę kolumny decyzyjnej lub jej indeks (np. 'salary' lub '4'): \n")
     if decision_attribute.isnumeric():
         decision_attribute = int(decision_attribute) - 1
         try:
             decision_attribute_name = labels[decision_attribute]
         except IndexError:
-            raise ValueError(f"\033[31mIndeks kolumny decyzyjnej ({decision_attribute}) poza zakresem!\033[0m")
+            raise ValueError(f"\033[31mIndeks kolumny ({decision_attribute}) poza zakresem!\033[0m")
     else:
-        decision_attribute_name = decision_attribute.lower()
+        decision_attribute_name = decision_attribute
         if decision_attribute_name not in labels:
-            raise ValueError(f"\033[31mNie znaleziono kolumny decyzyjnej o nazwie '{decision_attribute_name}'!\033[0m")
-
+            raise ValueError(f"\033[31mNie znaleziono kolumny o nazwie '{decision_attribute_name}'!\033[0m")
     return decision_attribute_name
 
 def main():
@@ -141,6 +150,8 @@ def main():
     entropies = calculate_entropy(probabilities=probabilities)
     information_gains = calculate_information_gain(entropies=entropies, decision_attribute=decision_attribute)
     show_results(entropies=entropies, info_gain=information_gains)
+
+    del path, cont_labels, data_type, labels, raw_data, features, probabilities, entropies, information_gains
 
 
 if __name__ == '__main__':
