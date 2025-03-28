@@ -52,10 +52,22 @@ def calculate_entropy(probabilities: dict = None) -> dict:
         entropies[column_name] = -entropy
     return entropies
 
-def show_results(entropies: dict) -> None:
+def calculate_information_gain(entropies: dict, decision_attribute: str = 'd') -> dict:
+    information_gains = {}
+    dataset_entropy = entropies[decision_attribute]
+    for attribute, entropy in entropies.items():
+        if attribute != decision_attribute:
+            information_gains[attribute] = dataset_entropy - entropy
+    return information_gains
+
+
+def show_results(entropies: dict = None, info_gain: dict = None) -> None:
     for column_name, entropy_value in entropies.items():
         print(f"\033[36m------- \033[35m{column_name} \033[36m-------")
         print(f"\033[36mEntropia = \033[32m{entropy_value}\n")
+    print("\033[33m=== Przyrost informacji ===\033[0m")
+    for attr, gain in info_gain.items():
+        print(f"\033[34m{attr}: \033[32m{gain:.4f}\033[0m")
 
 
 def main():
@@ -64,7 +76,10 @@ def main():
     features = extract_features(data=arrayed)
     probabilities = calculate_probabilities(features=features)
     entropies = calculate_entropy(probabilities=probabilities)
-    show_results(entropies=entropies)
+    information_gains = calculate_information_gain(entropies=entropies, decision_attribute='d')
+    show_results(entropies=entropies, info_gain=information_gains)
+
 
 if __name__ == '__main__':
     main()
+
