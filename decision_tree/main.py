@@ -1,8 +1,5 @@
 from math import log2
 
-import os
-
-
 def delimiter_sniffer(raw_data: str = None) -> str:
     allowed_delimiters = ['\t', ';', ',', ' ']
     lines = raw_data.splitlines()[:5]
@@ -40,9 +37,14 @@ def read_data(path: str = None, cont_labels: bool = False) -> (str, str, list):
 def to_array(raw_data: str = None, delimiter: str = None, data_type: str = None, cont_labels: bool = False) -> dict:
     if data_type == 'csv' or data_type == 'txt' or data_type == 'tsv':
         try:
-            splitted_lines = (line.split(delimiter) for line in raw_data.splitlines())
-            labels = next(splitted_lines) if cont_labels else [f"c{i+1}" for i in range(len(next(splitted_lines)) - 1)] + ["d"]
-            return dict(zip(labels, zip(*splitted_lines)))
+            lines = [line.split(delimiter) for line in raw_data.splitlines()]
+            if cont_labels:
+                labels = lines[0]
+                data_rows = lines[1:]
+            else:
+                labels = [f"c{i + 1}" for i in range(len(lines[0]) - 1)] + ["d"]
+                data_rows = lines
+            return dict(zip(labels, zip(*data_rows)))
         except StopIteration and RuntimeError:
             print('\033[33mBłąd procesowania danych!\n\033[0m')
             return {}
@@ -79,15 +81,35 @@ def calculate_entropy(probabilities: dict = None) -> dict:
         entropies[column_name] = -entropy
     return entropies
 
-def calculate_information_gain(entropies: dict, decision_attribute: str = 'd') -> dict:
-    information_gains = {}
-    if decision_attribute not in entropies:
-        raise ValueError(f"\033[31mNie znaleziono kolumny decyzyjnej '{decision_attribute}' w danych!\033[0m")
-    dataset_entropy = entropies[decision_attribute]
-    for attribute, entropy in entropies.items():
-        if attribute != decision_attribute:
-            information_gains[attribute] = dataset_entropy - entropy
-    return information_gains
+def calculate_information_function(data: dict, decision_attribute: str) -> dict:
+    from collections import defaultdict
+
+    total_count = len(next(iter(data.values())))
+    info_results = {}
+
+    for attr, values in data.items():
+        if attr == decision_attribute:
+            continue
+
+        grouped = defaultdict(list)
+        for i, value in enumerate(values):
+            grouped[value].append(i)
+
+        info_value = 0.0
+        for val, indices in grouped.items():
+            subset_decisions = [data[decision_attribute][i] for i in indices]
+            subset_total = len(indices)
+            decision_counts = {v: subset_decisions.count(v) for v in set(subset_decisions)}
+            probs = [count / subset_total for count in decision_counts.values()]
+            entropy = -sum(p * log2(p) for p in probs if p > 0)
+            info_value += (subset_total / total_count) * entropy
+
+        info_results[attr] = info_value
+
+    return info_results
+
+def calculate_information_gain(info_t: float, info_attributes: dict) -> dict:
+    return {attr: info_t - info_x for attr, info_x in info_attributes.items()}
 
 def show_results(entropies: dict = None, info_gain: dict = None) -> None:
     # os.system('cls')
@@ -148,7 +170,9 @@ def main():
     features = extract_features(data=arrayed)
     probabilities = calculate_probabilities(features=features)
     entropies = calculate_entropy(probabilities=probabilities)
-    information_gains = calculate_information_gain(entropies=entropies, decision_attribute=decision_attribute)
+    info_t = entropies[decision_attribute]
+    info_x_t = calculate_information_function(data=arrayed, decision_attribute=decision_attribute)
+    information_gains = calculate_information_gain(info_t, info_x_t)
     show_results(entropies=entropies, info_gain=information_gains)
 
     del path, cont_labels, data_type, labels, raw_data, features, probabilities, entropies, information_gains
