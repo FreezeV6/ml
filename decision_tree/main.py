@@ -2,7 +2,7 @@ import os
 import math
 import random
 
-random.seed(22)
+
 
 def read_raw(path: str = None) -> str:
     try:
@@ -263,8 +263,7 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
     full_train_idx = indices[:n_train]
     test_idx = indices[n_train:]
 
-    # Wydzielamy część zbioru treningowego na walidację (10% danych treningowych)
-    val_frac = 0.1
+    val_frac = 0.15
     n_val = int(n_train * val_frac)
     val_idx = full_train_idx[:n_val]
     train_idx = full_train_idx[n_val:]
@@ -358,7 +357,7 @@ def main(path: str, headers: str, d: int, test_pct: float):
 
 if __name__ == '__main__':
     main(
-        path=r'C:\Users\Wassup_Home\PycharmProjects\ml\sample_data\car.data',
+        path=r'C:\Users\Wassup_Home\PycharmProjects\ml\sample_data\breast+cancer\breast-cancer.data',
         headers='nie',
         d=7,
         test_pct=30.0
