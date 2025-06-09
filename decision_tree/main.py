@@ -260,11 +260,11 @@ def prune_tree(node: dict, validation_data: dict, decision: str):
         # depth pozostawiamy bez zmian (nie trzeba go dalej używać)
         node['depth'] = node.get('depth', 0)
 
-def train_and_test(data: dict, attributes: list, decision: str, test_frac: float = 0.3, val_frac: float = 0.2):
+def train_and_test(data: dict, attributes: list, decision: str, test_frac: float = 0.3):
     """
-    Dzieli dane na zbiory: treningowy, walidacyjny i testowy według podanych ułamków.
-    Buduje drzewo na zbiorze treningowym, przycina na zbiorze walidacyjnym,
-    a następnie testuje na zbiorze testowym, obliczając accuracy, precision i recall.
+    Dzieli dane na zbiory: treningowy i testowy według podanego ułamka.
+    Buduje drzewo na zbiorze treningowym, a następnie testuje na zbiorze
+    testowym, obliczając accuracy, precision i recall.
     """
     # Liczba przykładów ogółem
     N = len(data[decision])
@@ -272,31 +272,22 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
     random.shuffle(indices)
 
     n_test = int(N * test_frac)
-    n_val = int(N * val_frac)
-    n_train = N - n_val - n_test
+    n_train = N - n_test
 
     train_idx = indices[:n_train]
-    val_idx = indices[n_train:n_train + n_val]
-    test_idx = indices[n_train + n_val:]
+    test_idx = indices[n_train:]
 
     # Funkcja pomocnicza do tworzenia podzbioru
     def subset(data_dict, idx_list):
         return {col: [data_dict[col][i] for i in idx_list] for col in data_dict}
 
     train_data = subset(data, train_idx)
-    val_data = subset(data, val_idx) if n_val > 0 else {col: [] for col in data}
     test_data = subset(data, test_idx) if n_test > 0 else {col: [] for col in data}
 
     # Budowanie drzewa na zbiorze treningowym
     tree = build_decision_tree(train_data, attributes, decision)
     print("\n=== DRZEWO ZBUDOWANE NA ZBIORZE TRENINGOWYM ===")
     print(print_tree(tree))
-
-    # Przycinanie na zbiorze walidacyjnym (jeśli istnieje walidacja)
-    if n_val > 0:
-        prune_tree(tree, val_data, decision)
-        print("\n=== DRZEWO PO PRZYCIĘCIU (ZBIÓR WALIDACYJNY) ===")
-        print(print_tree(tree))
 
     # Testowanie na zbiorze testowym
     P_test = len(test_data[decision])
@@ -345,17 +336,14 @@ def main():
     attributes = [h for h in headers if h != 'd']
 
     try:
-        test_pct = float(input("Podaj procent danych do zbioru testowego (0-100, domyślnie 20): ") or "30")
-        val_pct = float(input("Podaj procent danych do zbioru walidacyjnego (0-100, domyślnie 15): ") or "20")
+        test_pct = float(input("Podaj procent danych do zbioru testowego (0-100, domyślnie 30): ") or "30")
         test_frac = max(0.0, min(1.0, test_pct / 100.0))
-        val_frac = max(0.0, min(1.0 - test_frac, val_pct / 100.0))
     except ValueError:
-        print("Błędne wartości procentowe. Używam domyślnych: 30% test, 20% walidacja.")
-        test_frac = 0.20
-        val_frac = 0.15
+        print("Błędne wartości procentowe. Używam domyślnej wartości: 30% test.")
+        test_frac = 0.30
 
     # Uruchamiamy procedurę trenowania i testowania
-    tree, metrics = train_and_test(data, attributes, 'd', test_frac=test_frac, val_frac=val_frac)
+    tree, metrics = train_and_test(data, attributes, 'd', test_frac=test_frac)
 
     os.makedirs('result', exist_ok=True)
     with open('result/breast-cancer.txt', 'w', encoding='utf-8') as f:
