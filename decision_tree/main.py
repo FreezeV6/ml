@@ -244,6 +244,8 @@ def prune_tree(node: dict, validation_data: dict, decision: str):
         node['count'] = P
         node['depth'] = node.get('depth', 0)
 
+def subset(data_dict, idx_list):
+    return {col: [data_dict[col][i] for i in idx_list] for col in data_dict}
 
 def train_and_test(data: dict, attributes: list, decision: str, test_frac: float = 0.3):
     """
@@ -261,13 +263,10 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
     full_train_idx = indexes[:n_train]
     test_idx = indexes[n_train:]
 
-    val_frac = 0.15
+    val_frac = 0.2
     n_val = int(n_train * val_frac)
     val_idx = full_train_idx[:n_val]
     train_idx = full_train_idx[n_val:]
-
-    def subset(data_dict, idx_list):
-        return {col: [data_dict[col][i] for i in idx_list] for col in data_dict}
 
     train_data = subset(data, train_idx)
     validation_data = subset(data, val_idx) if n_val > 0 else {col: [] for col in data}
