@@ -2,8 +2,6 @@ import os
 import math
 import random
 
-
-
 def read_raw(path: str = None) -> str:
     try:
         with open(file=path, mode='r', encoding='utf-8') as data:
@@ -58,7 +56,7 @@ def calculate_entropy(probabilities: dict) -> dict:
     for column_name, probabilities_dict in probabilities.items():
         entropy = 0.0
         for prob in probabilities_dict.values():
-            if prob > 0:
+            if prob >= 0:
                 entropy -= prob * math.log2(prob)
         entropies[column_name] = entropy
     return entropies
@@ -152,6 +150,15 @@ def print_tree(tree: dict, indent: str = '') -> str:
             line += print_tree(subtree, indent + '    ')
     return line
 
+def count_leaves(subt):
+    if subt['type'] == 'leaf':
+        return {subt['label']: 1}
+    total = {}
+    for br in subt['branches'].values():
+        c = count_leaves(br)
+        for k, v in c.items():
+            total[k] = total.get(k, 0) + v
+    return total
 
 def classify_subtree(tree: dict, record: dict):
     if tree['type'] == 'leaf':
@@ -162,19 +169,10 @@ def classify_subtree(tree: dict, record: dict):
         return classify_subtree(tree['branches'][val], record)
     else:
         leaf_counts = {}
-        def count_leaves(subt):
-            if subt['type'] == 'leaf':
-                return {subt['label']: 1}
-            total = {}
-            for br in subt['branches'].values():
-                c = count_leaves(br)
-                for k, v in c.items():
-                    total[k] = total.get(k, 0) + v
-            return total
         for subtree in tree['branches'].values():
-            cnts = count_leaves(subtree)
-            for label, cnt in cnts.items():
-                leaf_counts[label] = leaf_counts.get(label, 0) + cnt
+            counts = count_leaves(subtree)
+            for label, count in counts.items():
+                leaf_counts[label] = leaf_counts.get(label, 0) + count
         if leaf_counts:
             return max(leaf_counts, key=leaf_counts.get)
         else:
@@ -215,10 +213,10 @@ def prune_tree(node: dict, validation_data: dict, decision: str):
         return
     attr = node['attribute']
     for branch_val, subtree in list(node['branches'].items()):
-        subset_indices = [i for i, v in enumerate(validation_data[attr]) if v == branch_val]
-        if not subset_indices:
+        subset_indexes = [i for i, v in enumerate(validation_data[attr]) if v == branch_val]
+        if not subset_indexes:
             continue
-        child_validation = {col: [validation_data[col][i] for i in subset_indices]
+        child_validation = {col: [validation_data[col][i] for i in subset_indexes]
                             for col in validation_data}
         prune_tree(subtree, child_validation, decision)
     P = len(validation_data[decision])
@@ -254,14 +252,14 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
     a następnie testuje na zbiorze testowym, obliczając accuracy, precision i recall.
     """
     N = len(data[decision])
-    indices = list(range(N))
-    random.shuffle(indices)
+    indexes = list(range(N))
+    random.shuffle(indexes)
 
     n_test = int(N * test_frac)
     n_train = N - n_test
 
-    full_train_idx = indices[:n_train]
-    test_idx = indices[n_train:]
+    full_train_idx = indexes[:n_train]
+    test_idx = indexes[n_train:]
 
     val_frac = 0.15
     n_val = int(n_train * val_frac)
@@ -276,10 +274,9 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
     test_data = subset(data, test_idx) if n_test > 0 else {col: [] for col in data}
 
     tree = build_decision_tree(train_data, attributes, decision)
-    # Przycinanie drzewa na podstawie zbioru walidacyjnego
     if validation_data[decision]:
         prune_tree(tree, validation_data, decision)
-    print("\n=== DRZEWO PO PRZYCINANIU (walidacyjne) ===")
+    print("\nPrzyciete drzewo:")
     print(print_tree(tree))
 
     P_test = len(test_data[decision])
@@ -291,10 +288,10 @@ def train_and_test(data: dict, attributes: list, decision: str, test_frac: float
         pred_test.append(classify_subtree(tree, record))
 
     accuracy, precision, recall = evaluate_classification(true_test, pred_test)
-    print("\n=== WYNIKI NA ZBIORZE TESTOWYM ===")
-    print(f"Dokładność (accuracy): {accuracy:.4f}")
-    print(f"Precyzja (precision): {precision:.4f}")
-    print(f"Czułość (recall): {recall:.4f}")
+    print("\nTest:")
+    print(f"Acc: {accuracy:.4f}")
+    print(f"p: {precision:.4f}")
+    print(f"r: {recall:.4f}")
 
     return tree, (accuracy, precision, recall)
 
@@ -308,10 +305,10 @@ def main(path: str, headers: str, d: int, test_pct: float):
     sep = delimiter_sniffer(raw)
     rows = parse_rows(raw, sep)
 
-    print("Potencjalne nagłówki z pierwszej linii:")
-    for i, h in enumerate(rows[0], 1):
-        print(f"  {i}. {h}")
     if headers is None:
+        print("Potencjalne nagłówki z pierwszej linii:")
+        for i, h in enumerate(rows[0], 1):
+            print(f"  {i}. {h}")
         headers_input = input("Czy są nagłówki? (tak/nie): ").strip().lower()
     else:
         headers_input = headers
@@ -359,6 +356,6 @@ if __name__ == '__main__':
     main(
         path=r'C:\Users\Wassup_Home\PycharmProjects\ml\sample_data\breast+cancer\breast-cancer.data',
         headers='nie',
-        d=7,
-        test_pct=30.0
+        d=10,
+        test_pct=20.0
     )
